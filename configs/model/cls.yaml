@@ -1,0 +1,15 @@
+defaults:
+ - /model@_here_
+ - _self_
+
+model_type: "classification"
+init_kwargs:
+  num_labels: 2
+  id2label:
+    0: "False"
+    1: "True"
+  label2id:
+    "False": 0
+    "True": 1
+  problem_type: "single_label_classification"
+  attn_implementation: "flash_attention_2"

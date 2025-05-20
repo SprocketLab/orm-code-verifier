@@ -1,0 +1,7 @@
+
+defaults:
+  - prob_sol_yn@_here_
+  - _self_
+  
+pass_choice_str: 'Good'
+fail_choice_str: 'Bad'

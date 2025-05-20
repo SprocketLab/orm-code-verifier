@@ -1,0 +1,5 @@
+# @package _global_
+defaults:
+  - override /preprocessing: qsol_task
+  - override /scoring: binary_logits
+  - _self_

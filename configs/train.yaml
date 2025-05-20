@@ -1,0 +1,28 @@
+defaults:
+  - trainer: hf
+  - preprocessing: qsol_task
+  - scoring: single_binary_logit
+  - model: cls
+  - _self_
+
+model:
+  name: "pythia-160m"
+
+setup_name: base_train
+batch_size: 8
+gradient_accumulation_steps: 8
+precision: bf16
+gradient_checkpointing: False
+logging_steps: 5
+warmup_ratio: 0.1
+optim: adamw_torch_fused 
+data:
+  require_pf: True
+preprocessing:
+  remove_comments: False
+  black_format: True
+max_input_length: 2048
+save_strategy: steps
+save_steps: 0.1
+eval_strategy: steps
+eval_steps: 0.2

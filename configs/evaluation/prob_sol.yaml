@@ -1,0 +1,10 @@
+# @package _global_
+defaults:
+  - override /preprocessing: prob_sol 
+  - _self_
+
+scoring:
+  step_token: "Will the program in [SOLUTION] pass the tests described in [PROBLEM]?\n{% if outcome -%}{{outcome}}{%- endif -%}"
+  pass_choice_str: "Yes"
+  fail_choice_str: "No"
+  scoring_method: st_binary_logit

@@ -1,0 +1,14 @@
+datasets==2.21.0 
+rich==13.8.0
+tqdm==4.66.5
+black==24.8.0
+click==8.1.7
+ujson==5.10.0
+numpy==2.2.4
+pandas==2.2.3
+matplotlib==3.10.0
+sympy==1.13.3
+scipy==1.15.2
+pylint==3.3.4
+code_execution @ git+https://github.com/iglesiadelriquelme/anon-code-exec.git
+evalplus @ git+https://github.com/iglesiadelriquelme/anon-evalplus.git

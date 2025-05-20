@@ -1,0 +1,34 @@
+
+defaults:
+  - base@_here_
+  - _self_
+
+problem: |-
+  [PROBLEM]
+  {{problem}}
+  [/PROBLEM]
+program: |-
+  [SOLUTION]
+  ```python
+  {{program}}
+  ```
+  [/SOLUTION]
+outcome: "{{outcome}}"
+prompt: |-
+  {%- if instruction -%}
+  {{instruction}}
+  {% endif -%}
+  {% if icl_examples -%}
+  {%- for example in icl_examples -%}
+  # Example {{loop.index|string}}:
+  {{example +"\n\n"}}
+  {%- endfor -%}
+  # Example {{icl_examples|length + 1}}:
+  {% endif -%}
+  {%- if problem -%}
+  {{ problem }}
+  {% endif -%}
+  {{ program + "\n"}}
+completion: ""
+pass_choice_str: "Yes"
+fail_choice_str: "No"

@@ -1,0 +1,5 @@
+# @package _global_
+defaults:
+  - override /preprocessing: prob_sol_gbm
+  - override /scoring: binary_logits
+  - _self_

@@ -1,0 +1,4 @@
+# @package _global_
+defaults:
+  - /trainers/rm@_here_
+  - _self_

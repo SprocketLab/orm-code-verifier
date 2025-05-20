@@ -1,0 +1,11 @@
+defaults:
+  - model: clm
+  - suite: zero_shot
+  - scoring: yes_no_logit
+  - preprocessing: no_instruction
+  - _self_
+
+suite:
+  dataset: "gabeorlanski/code_ranking_eval"
+model:
+  name: "pythia-160m"

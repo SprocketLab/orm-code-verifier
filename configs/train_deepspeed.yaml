@@ -1,0 +1,39 @@
+defaults:
+  - trainer: hf
+  - preprocessing: qsol_task
+  - scoring: single_binary_logit
+  - model: cls
+  - _self_
+
+model:
+  name: "pythia-160m"
+
+setup_name: base_train
+batch_size: 8
+gradient_accumulation_steps: 8
+precision: bf16
+gradient_checkpointing: False
+logging_steps: 5
+warmup_ratio: 0.1
+optim: adamw_torch_fused 
+data:
+  require_pf: True
+max_input_length: 2048
+deepspeed:
+  zero_optimization: 
+    stage: 2
+    offload_optimizer:
+      device: cpu
+      pin_memory: true
+    allgather_partitions: true
+    allgather_bucket_size: 2e8
+    overlap_comm: true
+    reduce_scatter: true
+    reduce_bucket_size: "auto"
+    contiguous_gradients: true
+    round_robin_gradients: true
+  bf16:
+    enabled: true
+  fp16:
+    enabled: false
+    auto_case: false

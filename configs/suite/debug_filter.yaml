@@ -1,0 +1,10 @@
+defaults:
+  - /eval_suite@_here_
+  - /humaneval_cfg@tasks.humaneval
+  - _self_
+
+name: debug_filter
+filter_function: execute_3s1t
+
+filter_batch_size: 10
+

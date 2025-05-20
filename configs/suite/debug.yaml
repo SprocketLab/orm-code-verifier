@@ -1,0 +1,6 @@
+defaults:
+  - /eval_suite@_here_
+  - /mbpp_cfg@tasks.mbpp
+  - _self_
+
+name: debug

@@ -1,0 +1,11 @@
+# @package _global_
+defaults:
+  - clm_base@_here_
+  - override /preprocessing: qsol_task
+  - override /scoring: logprob
+  - _self_
+
+
+scoring:
+  use_dummy_problem_for_mask: True
+solution_in_label: True
