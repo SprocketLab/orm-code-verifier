@@ -16,18 +16,24 @@ This repository implements a scalable approach to code verification using outcom
 
 ```
 .
-├── configs/            # Configuration files for experiments and evaluation
-│   └── suite/         # Suite configurations
+├── configs/             # Configuration files for experiments and evaluation
+│   └── evaluation/      # Evaluation configs for running base model
+│   └── experiments/     # Full experiment configs
+│   └── model/           # Different architectures configs
+│   └── preprocessing/   # Prompting configs
+│   └── scoring/         # Configurations for different scoring methods.
+│   └── suite/           # Suite configurations for evaluation
+│   └── trainer/         # Training configs
 ├── scripts/           
-│   ├── data/          # Data processing and generation
-│   └── exec_trials/   # Execution trial implementations
+│   ├── data/            # Data processing and generation
+│   └── exec_trials/     # Execution trial implementations
 ├── src/               
-│   ├── evaluation/    # Evaluation suite and benchmarks
-│   ├── modeling.py    # Model architectures
+│   ├── evaluation/      # Evaluation suite and benchmarks
+│   ├── modeling.py      # Model architectures
 │   ├── preprocessing.py # Data preparation
-│   ├── scoring.py     # Solution scoring
-│   └── training/      # Training pipeline
-└── figs/              # Project figures and diagrams
+│   ├── scoring.py       # Solution scoring
+│   └── training/        # Training pipeline
+└── figs/                # Project figures and diagrams
 ```
 
 For detailed information about specific components:
@@ -117,7 +123,7 @@ The system provides multiple evaluation configurations, each serving different v
 - **Base** ([zero_shot](configs/suite/zero_shot.yaml)): Basic verification without additional checks
 - **Syntax** ([zero_shot_syntax](configs/suite/zero_shot_syntax.yaml)): Focuses on syntactic correctness
 - **Lint** ([zero_shot_lint](configs/suite/zero_shot_lint.yaml)): Enforces code style and quality
-- **Test Coverage**:
+- **N Test**:
   - [1 Test](configs/suite/zero_shot_3s1t.yaml): Quick verification with minimal testing
   - [3 Tests](configs/suite/zero_shot_3s3t.yaml): Balanced verification approach
   - [10 Tests](configs/suite/zero_shot_3s10t.yaml): Thorough verification with extensive testing
