@@ -9,11 +9,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import List, Optional
 
-import bigcode_eval.tasks
 import click
-import ray
-import ujson
-from bigcode_eval.tasks import TASK_REGISTRY
 from code_execution.eval_dataset import apps
 from code_execution.eval_dataset.code_contests import REQUIRED_EXECUTION_KEYS
 from code_execution.eval_dataset.code_contests import process_problem

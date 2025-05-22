@@ -10,5 +10,5 @@ matplotlib==3.10.0
 sympy==1.13.3
 scipy==1.15.2
 pylint==3.3.4
-code_execution @ git+https://github.com/iglesiadelriquelme/anon-code-exec.git
-evalplus @ git+https://github.com/iglesiadelriquelme/anon-evalplus.git
+code_execution @ git+https://github.com/gabeorlanski/simple-code-execution.git@bf0cb87ba5987216e5c537028b74bdb18fa382d4
+evalplus @ git+https://github.com/gabeorlanski/evalplus.git

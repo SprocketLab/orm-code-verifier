@@ -40,7 +40,7 @@ def parse_args():
         "-o",
         type=Path,
         help="Output directory",
-        default=Path(utils.DEFAULT_OUT_DIR, "corm-train"),
+        default=Path(utils.DEFAULT_OUT_DIR),
     )
     parser.add_argument(
         "--config_file",
@@ -94,7 +94,7 @@ def parse_args():
         help="Number of validation examples to use for debugging",
     )
     parser.add_argument(
-        "--disable_wandb",
+        "--enable_wandb",
         action="store_true",
     )
     parser.add_argument("--disable_cpu_offload", action="store_true")
@@ -212,7 +212,7 @@ def main(
     rng = utils.set_seed(cfg.seed)
 
     wandb_run = None
-    if not flags.disable_wandb:
+    if flags.enable_wandb:
         logger.info("Starting wandb run")
         if flags.group_name:
             group_name = flags.group_name
@@ -267,7 +267,7 @@ def main(
         include_num_input_tokens_seen=False,
         include_tokens_per_second=False,
         run_name=run_name,
-        report_to="wandb" if not flags.disable_wandb else [],
+        report_to="wandb" if flags.enable_wandb else [],
         dataloader_drop_last=True,
         optim=cfg.optim,
         auto_find_batch_size=cfg.auto_find_batch_size,
@@ -408,7 +408,7 @@ def main(
             indent=2,
             sort_keys=True,
         )
-    if not flags.disable_wandb:
+    if flags.enable_wandb:
         artifact = wandb.Artifact(
             f"{cfg.model.name}-{run_name}",
             type="train_output",

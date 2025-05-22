@@ -1,3 +1,52 @@
+"""This module contains the logic for scoring a dataset of solutions.
+
+The design approach is that there is a base ScoringFunction class that contains the logic for scoring a dataset.
+There are then concrete classes that implement the ScoringFunction for a specific scoring method.
+
+The scoring function is callable with a dataset, a model, and a max_tokens_per_batch.
+
+The scoring function will return a tuple of (score_timings, scored_solutions).
+
+The scoring function will preprocess the dataset, score the dataset, and postprocess the scores.
+
+Key Components:
+- ScoringFunction: Abstract base class defining the scoring interface
+- BinaryLogitScoring: Scores using binary logits over full sequences
+- SingleTokenBinaryLogitScoring: Scores using binary logits on single tokens
+- ClassificationScoring: Treats scoring as a classification task
+- RewardModelScoring: Uses a reward model approach
+- LogProbScoring: Scores based on log probabilities
+
+The module supports different scoring methods:
+- binary_logit: Binary logit scoring over sequences
+- binary_logprob: Binary log probability scoring over sequences
+- st_binary_logit: Single token binary logit scoring
+- st_binary_logprob: Single token binary log probability scoring
+- classification: Classification-based scoring
+- reward_model: Reward model scoring
+- logprob: Log probability scoring
+
+Usage:
+    scoring_fn = load_scoring_method(
+        scoring_cfg=config,
+        tokenizer=tokenizer,
+        pass_choice_str="pass",
+        fail_choice_str="fail",
+        eval_completion="The answer is:"
+    )
+
+    timings, scores = scoring_fn(
+        dataset=dataset,
+        model=model,
+        max_tokens_per_batch=1024
+    )
+
+The module also provides utilities for:
+- Grouping and aggregating scores by task
+- Computing evaluation metrics like ranking score and best-of-k
+- Tracking timing information during scoring
+"""
+
 import logging
 import os
 from collections import Counter
@@ -28,8 +77,6 @@ from src.utils import is_debugging_enabled
 from src.utils import seconds_to_human
 
 import torch
-import triton
-import triton.language as tl
 from torch import Tensor
 
 logger = logging.getLogger(__name__)
@@ -37,6 +84,17 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ScoringConfig:
+    """Configuration class for scoring methods.
+
+    Attributes:
+        scoring_method (str): The scoring method to use. Must be one of the supported methods.
+        disable_single_token_optimization (bool): Whether to disable single token optimization.
+        log_softmax_logits (bool): Whether to apply log softmax to logits.
+        use_problem_for_mask (bool): Whether to use problem text for masking.
+        use_dummy_problem_for_mask (bool): Whether to use dummy problem text for masking.
+        include_completion (bool): Whether to include completion text in scoring.
+    """
+
     scoring_method: str = MISSING
     disable_single_token_optimization: bool = False
     log_softmax_logits: bool = False
@@ -55,6 +113,17 @@ class ScoringConfig:
 
 @dataclass
 class ScoringTimings:
+    """Class for tracking timing information during scoring.
+
+    Attributes:
+        inference (float): Time spent on model inference
+        get_ds_scores (float): Time spent getting dataset scores
+        scoring_function (float): Time spent in scoring function
+        evaluation (float): Time spent on evaluation
+        overall (float): Overall time spent
+        filtering (float): Time spent on filtering
+    """
+
     inference: float
     get_ds_scores: float
     scoring_function: float = float("inf")
@@ -69,6 +138,17 @@ def _score_example(
     model: PreTrainedModel,
     scoring_fn: Callable,
 ):
+    """Score a single batch of examples.
+
+    Args:
+        batch: The batch of examples to score
+        device: The device to run inference on
+        model: The model to use for scoring
+        scoring_fn: The scoring function to apply
+
+    Returns:
+        tuple: (batch_scores, batch_losses, elapsed_time)
+    """
 
     start_time = datetime.now(timezone.utc)
 
@@ -132,6 +212,21 @@ def _get_ds_scores(
     pad_side: str = "right",
     special_pad_token_map: Dict[str, int] = None,
 ) -> Tuple[ScoringTimings, Dict[str, torch.Tensor]]:
+    """Get scores for an entire dataset.
+
+    Args:
+        dataset: The dataset to score
+        model: The model to use for scoring
+        device: The device to run on
+        tokenizer: The tokenizer to use
+        scoring_function: The scoring function to apply
+        max_tokens_per_batch: Maximum tokens per batch
+        pad_side: Side to pad sequences on
+        special_pad_token_map: Map of special padding tokens
+
+    Returns:
+        tuple: (scoring_timings, results_dict)
+    """
     logger.info(
         f"Scoring {len(dataset):,} examples with {max_tokens_per_batch:,} tokens per batch"
     )
@@ -213,6 +308,25 @@ def _get_ds_scores(
 
 
 class ScoringFunction:
+    """Base class for scoring functions.
+
+    This class defines the interface that all scoring functions must implement.
+    Subclasses should override the preprocess_batch, score, and postprocess_scores methods.
+
+    Args:
+        cfg: The scoring configuration
+        tokenizer: The tokenizer to use
+        pass_choice_str: String indicating a passing solution
+        fail_choice_str: String indicating a failing solution
+        eval_completion: String to append for evaluation
+        max_length: Maximum sequence length
+        special_pad_token_map: Map of special padding tokens
+        calculate_loss: Whether to calculate loss
+        num_workers: Number of preprocessing workers
+        preproc_batch_size: Preprocessing batch size
+        postprocess_fn: Optional postprocessing function
+    """
+
     def __init__(
         self,
         cfg: ScoringConfig,
@@ -380,6 +494,19 @@ class ScoringFunction:
 
 
 class BinaryLogitScoring(ScoringFunction):
+    """Scoring function that uses binary logits over full sequences.
+
+    This class implements scoring by computing logits for binary classification
+    (pass/fail) over complete sequences. It can optionally use full log probabilities.
+
+    Args:
+        cfg: The scoring configuration
+        tokenizer: The tokenizer to use
+        max_length: Maximum sequence length
+        use_full_logprob: Whether to use full log probabilities
+        **kwargs: Additional arguments passed to parent class
+    """
+
     def __init__(
         self,
         cfg: ScoringConfig,
@@ -411,6 +538,15 @@ class BinaryLogitScoring(ScoringFunction):
     def preprocess_batch(
         self, batch: List[Dict[str, List]], indices: List[int] = None
     ) -> List[Dict[str, List]]:
+        """Preprocess a batch of examples.
+
+        Args:
+            batch: Batch of examples to preprocess
+            indices: Optional list of indices for the batch
+
+        Returns:
+            dict: Preprocessed batch with tokenized inputs and masks
+        """
         out = {
             "input_ids": [],
             "attention_mask": [],
@@ -506,6 +642,15 @@ class BinaryLogitScoring(ScoringFunction):
         logits: torch.Tensor,
         batch: Dict[str, torch.Tensor],
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        """Score a batch of examples.
+
+        Args:
+            logits: Model output logits
+            batch: Batch of examples
+
+        Returns:
+            tuple: (scores, optional_losses)
+        """
         input_ids = batch["input_ids"].clone().to(logits.device)
 
         # Calculate loss prior to log softmax if needed so we dont need other
@@ -591,6 +736,18 @@ class BinaryLogitScoring(ScoringFunction):
 
 
 class SingleTokenBinaryLogitScoring(ScoringFunction):
+    """Scoring function that uses binary logits on single tokens.
+
+    This class implements scoring by computing logits for binary classification
+    on individual tokens rather than full sequences.
+
+    Args:
+        *args: Arguments passed to parent class
+        use_full_logprob: Whether to use full log probabilities
+        max_length: Maximum sequence length
+        **kwargs: Additional arguments passed to parent class
+    """
+
     def __init__(
         self,
         *args,
@@ -622,6 +779,15 @@ class SingleTokenBinaryLogitScoring(ScoringFunction):
     def preprocess_batch(
         self, batch: Dict[str, List], indices: List[int]
     ) -> Dict[str, List]:
+        """Preprocess a batch of examples.
+
+        Args:
+            batch: Batch of examples to preprocess
+            indices: List of indices for the batch
+
+        Returns:
+            dict: Preprocessed batch with tokenized inputs
+        """
         out = {
             "idx": indices,  # used to keep track of the original index and group.
         }
@@ -650,6 +816,15 @@ class SingleTokenBinaryLogitScoring(ScoringFunction):
         logits: torch.Tensor,
         batch: Dict[str, torch.Tensor],
     ) -> Tuple[torch.Tensor | None]:
+        """Score a batch of examples.
+
+        Args:
+            logits: Model output logits
+            batch: Batch of examples
+
+        Returns:
+            tuple: (scores, optional_losses)
+        """
         lengths = batch["attention_mask"].sum(-1) - 1
         loss = None
         # Lengths need to be decremented by 1 to get the last token in the
@@ -719,6 +894,16 @@ class SingleTokenBinaryLogitScoring(ScoringFunction):
 
 
 class ClassificationScoring(ScoringFunction):
+    """Scoring function that treats the task as classification.
+
+    This class implements scoring by treating the task as a standard
+    classification problem with cross-entropy loss.
+
+    Args:
+        *args: Arguments passed to parent class
+        **kwargs: Additional arguments passed to parent class
+    """
+
     def __init__(
         self,
         *args,
@@ -731,6 +916,15 @@ class ClassificationScoring(ScoringFunction):
     def preprocess_batch(
         self, batch: Dict[str, List], indices: List[int]
     ) -> Dict[str, List]:
+        """Preprocess a batch of examples.
+
+        Args:
+            batch: Batch of examples to preprocess
+            indices: List of indices for the batch
+
+        Returns:
+            dict: Preprocessed batch with tokenized inputs
+        """
         out = {
             "idx": indices,  # used to keep track of the original index and group.
         }
@@ -763,6 +957,15 @@ class ClassificationScoring(ScoringFunction):
         logits: torch.Tensor,
         batch: Dict[str, torch.Tensor],
     ) -> Tuple[torch.Tensor | None]:
+        """Score a batch of examples.
+
+        Args:
+            logits: Model output logits
+            batch: Batch of examples
+
+        Returns:
+            tuple: (scores, optional_losses)
+        """
         if self.calculate_loss:
             loss_fct = torch.nn.CrossEntropyLoss(reduction="none")
             logits = logits.cpu()
@@ -799,6 +1002,16 @@ class ClassificationScoring(ScoringFunction):
 
 
 class RewardModelScoring(ScoringFunction):
+    """Scoring function that uses a reward model approach.
+
+    This class implements scoring using a reward model that directly
+    predicts scores for inputs using MSE loss.
+
+    Args:
+        *args: Arguments passed to parent class
+        **kwargs: Additional arguments passed to parent class
+    """
+
     def __init__(
         self,
         *args,
@@ -811,6 +1024,15 @@ class RewardModelScoring(ScoringFunction):
     def preprocess_batch(
         self, batch: Dict[str, List], indices: List[int]
     ) -> Dict[str, List]:
+        """Preprocess a batch of examples.
+
+        Args:
+            batch: Batch of examples to preprocess
+            indices: List of indices for the batch
+
+        Returns:
+            dict: Preprocessed batch with tokenized inputs
+        """
         out = {
             "idx": indices,  # used to keep track of the original index and group.
         }
@@ -843,6 +1065,15 @@ class RewardModelScoring(ScoringFunction):
         logits: torch.Tensor,
         batch: Dict[str, torch.Tensor],
     ) -> Tuple[torch.Tensor | None]:
+        """Score a batch of examples.
+
+        Args:
+            logits: Model output logits
+            batch: Batch of examples
+
+        Returns:
+            tuple: (scores, optional_losses)
+        """
         if self.calculate_loss:
 
             logits = logits
@@ -879,6 +1110,16 @@ class RewardModelScoring(ScoringFunction):
 
 
 class LogProbScoring(ScoringFunction):
+    """Scoring function that uses log probabilities.
+
+    This class implements scoring by computing log probabilities
+    over sequences, with optional masking and completion handling.
+
+    Args:
+        *args: Arguments passed to parent class
+        **kwargs: Additional arguments passed to parent class
+    """
+
     def __init__(
         self,
         *args,
@@ -889,6 +1130,15 @@ class LogProbScoring(ScoringFunction):
     def preprocess_batch(
         self, batch: Dict[str, List], indices: List[int]
     ) -> Dict[str, List]:
+        """Preprocess a batch of examples.
+
+        Args:
+            batch: Batch of examples to preprocess
+            indices: List of indices for the batch
+
+        Returns:
+            dict: Preprocessed batch with tokenized inputs and masks
+        """
         out = {
             "idx": indices,  # used to track the original index
         }
@@ -951,6 +1201,15 @@ class LogProbScoring(ScoringFunction):
     def score(
         self, logits: torch.Tensor, batch: Dict[str, torch.Tensor]
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        """Score a batch of examples.
+
+        Args:
+            logits: Model output logits
+            batch: Batch of examples
+
+        Returns:
+            tuple: (scores, optional_losses)
+        """
         # Get input IDs and shift for next token prediction
         # log_probs = triton_score(
         #     logits,
@@ -1038,6 +1297,22 @@ def load_scoring_method(
     eval_completion: str,
     **scoring_kwargs,
 ) -> ScoringFunction:
+    """Load and instantiate a scoring method.
+
+    Args:
+        scoring_cfg: The scoring configuration
+        tokenizer: The tokenizer to use
+        pass_choice_str: String indicating a passing solution
+        fail_choice_str: String indicating a failing solution
+        eval_completion: String to append for evaluation
+        **scoring_kwargs: Additional keyword arguments for scoring
+
+    Returns:
+        ScoringFunction: The instantiated scoring function
+
+    Raises:
+        ValueError: If an unknown scoring method is specified
+    """
 
     if scoring_cfg.scoring_method in SCORING_METHODS:
         logger.info("Using scoring method: %s", scoring_cfg.scoring_method)
@@ -1064,6 +1339,16 @@ def group_by_task_id(
     dataset: Dataset,
     task_id_key: str = "task_id",
 ) -> Dict[str, List[ScoredSolution]]:
+    """Group scoring records by task ID.
+
+    Args:
+        records: List of scoring records
+        dataset: The dataset containing task information
+        task_id_key: Key for task IDs in the dataset
+
+    Returns:
+        dict: Records grouped by task ID
+    """
     logger.info("Grouping records by task")
     out = defaultdict(lambda: defaultdict(list))
     for record in records:
@@ -1082,6 +1367,14 @@ def group_by_task_id(
 
 
 def _get_records(grouped_scores) -> Dict:
+    """Process grouped scores into evaluation metrics.
+
+    Args:
+        grouped_scores: Scores grouped by task
+
+    Returns:
+        dict: Dictionary of evaluation metrics
+    """
     logger.info(f"Processing {len(grouped_scores):,} problems")
     ex = next(iter(grouped_scores.values()))
     has_pair_loss = ex["pair_loss"][0] is not None
@@ -1144,7 +1437,19 @@ def evaluate_dataset(
     max_tokens_per_batch: int,
     preprocessed_ds: Optional[Dataset] = None,
 ) -> Dict[str, float]:
-    """Scores and evaluates a dataset using a scoring function."""
+    """Score and evaluate a dataset using a scoring function.
+
+    Args:
+        scoring_fn: The scoring function to use
+        accelerator: The Hugging Face Accelerator
+        model: The model to use for scoring
+        dataset: The dataset to evaluate
+        max_tokens_per_batch: Maximum tokens per batch
+        preprocessed_ds: Optional preprocessed dataset
+
+    Returns:
+        dict: Dictionary of evaluation metrics
+    """
 
     _, scores = scoring_fn(
         accelerator=accelerator,

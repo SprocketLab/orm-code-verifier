@@ -103,6 +103,7 @@ def process_predictions(
     default=None,
 )
 @click.option("--output_dir", type=Path, default=DEFAULT_OUT_DIR)
+@click.option("--debug_num_probs", type=int, default=None)
 def cli(
     num_proc: int,
     black_format: bool,
@@ -112,11 +113,12 @@ def cli(
     include_syntax: bool,
     only_dataset: Optional[str],
     output_dir: Path,
+    debug_num_probs: Optional[int],
 ):
     logger.info("Making train dataset")
 
     logger.info("Loading Code Contests dataset")
-    ds = load_dataset("anon/synth-train-prog")
+    ds = load_dataset("gabeorlanski/synth_train_prog")
     logger.info(f"Loaded original dataset: {ds}")
     ds = ds.filter(
         lambda x: should_keep_problem(
@@ -128,6 +130,8 @@ def cli(
         ),
         desc="Filtering",
     )
+    if debug_num_probs is not None:
+        ds["train"] = ds["train"].select(range(debug_num_probs))
     ds = ds.map(
         functools.partial(
             process_predictions,

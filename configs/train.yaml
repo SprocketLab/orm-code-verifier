@@ -15,7 +15,7 @@ precision: bf16
 gradient_checkpointing: False
 logging_steps: 5
 warmup_ratio: 0.1
-optim: adamw_torch_fused 
+optim: adamw_torch
 data:
   require_pf: True
 preprocessing:

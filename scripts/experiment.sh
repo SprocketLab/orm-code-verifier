@@ -40,7 +40,7 @@ REAL_BATCH_SIZE=64
 EVAL_TOKENS=2048
 EXAMPLES_PER_PROBLEM=6
 NUM_WORKERS=4
-DISABLE_WANDB=false
+DISABLE_WANDB=true 
 DEBUG=false
 PRECISION="bf16"
 VAL_BATCH_TOKENS=2048
@@ -95,9 +95,8 @@ while [[ $# -gt 0 ]]; do
             NUM_WORKERS="${1#*=}"
             shift
             ;;
-        --disable_wandb)
-            EVAL_ARGS+=("--disable_wandb") 
-            EXTRA_ARGS+=("--disable_wandb")
+        --track)
+            DISABLE_WANDB=false
             shift
             ;;
         --debug)
@@ -150,6 +149,11 @@ fi
 RUN_NAME="${RUN_NAME}_seed${SEED}_ex${EXAMPLES_PER_PROBLEM}"
 EXP_DIR="${EXP_DIR}/${RUN_NAME}"
 
+if [[ "$DISABLE_WANDB" == "true" ]]; then
+    EXTRA_ARGS+=("--enable_wandb")
+    EVAL_ARGS+=("--enable_wandb")
+fi
+
 echo "EXP_DIR: ${EXP_DIR}"
 echo "RUN_NAME: ${RUN_NAME}"
 echo "GROUP_NAME: ${GROUP_NAME}"
@@ -166,8 +170,7 @@ echo "DISABLE_WANDB: ${DISABLE_WANDB}"
 echo "DEBUG: ${DEBUG}"
 echo "SKIP_EVAL: ${SKIP_EVAL}"
 
-accelerate launch --gpu_ids $DEVICE --mixed_precision=$PRECISION \
-    --config_file=configs/accelerate.yaml train.py $EXPERIMENT \
+accelerate launch --mixed_precision=$PRECISION train.py $EXPERIMENT \
     model.name=$MODEL \
     --output_dir="${OUTPUT_DIR}/train" \
     --device $DEVICE \
@@ -180,9 +183,8 @@ accelerate launch --gpu_ids $DEVICE --mixed_precision=$PRECISION \
     "${EXTRA_ARGS[@]}"
 
 if [ "$SKIP_EVAL" = false ]; then
-    accelerate launch --gpu_ids $DEVICE \
+    accelerate launch \
         --mixed_precision=bf16 \
-        --config_file=configs/accelerate.yaml \
         evaluate_model.py \
         --precision=bf16 \
         --device=0 \
@@ -195,5 +197,6 @@ if [ "$SKIP_EVAL" = false ]; then
         t1.0_n128 \
         checkpoint \
         "${EXP_DIR}" \
-        "${EVAL_SUITE}"
+        "${EVAL_SUITE}" \
+        "${EVAL_ARGS[@]}"
 fi

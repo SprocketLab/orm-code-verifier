@@ -1,0 +1,16 @@
+# @package _global_
+defaults:
+  - override /scoring: regression
+  - override /preprocessing: prob_sol_cls
+  - override /model: rm
+  - override /trainer: rm
+  - _self_
+
+examples_per_problem: 6
+num_train_epochs: 2
+model:
+  init_kwargs:
+    attn_implementation: null
+
+preprocessing:
+  completion: ""

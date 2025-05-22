@@ -1,3 +1,21 @@
+"""Evaluation script for code generation models.
+
+This script provides functionality to evaluate models on code generation benchmarks
+(HumanEval and MBPP). It supports two main evaluation modes:
+1. Base model evaluation - evaluates a base model directly from HuggingFace
+2. Checkpoint evaluation - evaluates a specific checkpoint from a trained model
+
+The script uses Hydra for configuration management and supports various settings
+for model precision, batch sizes, and evaluation parameters. Results are logged
+both locally and optionally to Weights & Biases.
+
+Environment Variables:
+    TOKENIZERS_PARALLELISM: Set to "false" to prevent warnings
+    ACCELERATE_DOWNCAST_BF16: Set to "true" for mixed precision
+    CUDA_VISIBLE_DEVICES: Set based on device parameter
+    PRECISION: Set based on precision parameter
+"""
+
 import gzip
 import json
 import logging
@@ -58,7 +76,7 @@ os.environ["ACCELERATE_DOWNCAST_BF16"] = "true"
 @click.option("--precision", type=str, default="fp16")
 @click.option("--debug_num", type=int, default=None)
 @click.option("--num_workers", type=int, default=1)
-@click.option("--disable_wandb", is_flag=True)
+@click.option("--enable_wandb", is_flag=True)
 @click.option("--preproc_batch_size", type=int, default=5000)
 @click.option("--sort_by_length", is_flag=True)
 @click.pass_context
@@ -70,6 +88,29 @@ def cli(
     precision: str,
     **kwargs,
 ):
+    """Main CLI entry point for model evaluation.
+
+    Args:
+        ctx: Click context object for sharing state
+        generator_model: Name/path of the model used to generate solutions
+        sampling_setup: Configuration for generation sampling parameters
+        device: Device to run evaluation on (cuda:N, cpu, or mps)
+        precision: Model precision to use (fp16, fp32, bf16)
+        **kwargs: Additional CLI options including:
+            - debug: Enable debug mode
+            - verbose: Enable verbose logging
+            - overwrite: Overwrite existing results
+            - tags: Tags for WandB logging
+            - output_dir: Directory for saving results
+            - debug_num_probs: Number of problems to run in debug mode
+            - group_name: Group name for WandB
+            - max_tokens_per_batch: Maximum tokens per batch
+            - seed: Random seed
+            - num_workers: Number of worker processes
+            - enable_wandb: Enable WandB logging
+            - preproc_batch_size: Preprocessing batch size
+            - sort_by_length: Sort examples by length for batching
+    """
     ctx.ensure_object(dict)
     if device not in {"mps", "cpu"}:
         print(f"{device=}")
@@ -105,6 +146,21 @@ def update_config(
     dict_keys: Set[str] = None,
     ignore_keys: Set[str] = None,
 ):
+    """Update configuration by merging old config values into new config.
+
+    This function is used to preserve certain configuration values when loading
+    a new configuration, particularly useful when loading from checkpoints.
+
+    Args:
+        old_cfg: Previous configuration to preserve values from
+        raw_cfg: Raw configuration dictionary to update
+        new_cfg: New configuration object to update
+        dict_keys: Set of keys that should be treated as dictionaries for merging
+        ignore_keys: Set of keys to ignore during the update
+
+    Returns:
+        Tuple[DictConfig, object]: Updated raw config and config object
+    """
     dict_keys = dict_keys or set()
     ignore_keys = ignore_keys or set()
     for k, v in old_cfg.items():
@@ -143,9 +199,29 @@ def run_evaluation(
     cfg_dict: DictConfig,
     is_base: bool = False,
 ):
+    """Run model evaluation with the specified configuration.
+
+    This function handles the core evaluation logic including:
+    - Setting up WandB logging if enabled
+    - Configuring accelerator for mixed precision training
+    - Loading model and tokenizer
+    - Running evaluation suite
+    - Saving results and artifacts
+
+    Args:
+        ctx: Click context with runtime configuration
+        run_name: Name for this evaluation run
+        out_dir: Directory to save results
+        eval_suite: Evaluation suite instance
+        model_cfg: Model configuration
+        scoring_cfg: Scoring configuration
+        preprocessor_cfg: Preprocessing configuration
+        cfg_dict: Complete configuration dictionary
+        is_base: Whether this is a base model evaluation
+    """
     eval_suite.preproc_batch_size = ctx.obj["preproc_batch_size"]
     wandb_run = None
-    if not ctx.obj["disable_wandb"]:
+    if ctx.obj["enable_wandb"]:
         if is_base:
             group_name = "baseline"
         elif ctx.obj["group_name"] is not None:
@@ -241,6 +317,19 @@ def evaluate_base(
     variant_name: Optional[str],
     overrides: Tuple[str],
 ):
+    """Evaluate a base model from HuggingFace.
+
+    This command evaluates an unmodified model directly from HuggingFace
+    on the specified evaluation suite.
+
+    Args:
+        ctx: Click context with runtime configuration
+        model_name: HuggingFace model name/path
+        cfg_name: Name of evaluation configuration
+        eval_suite: Name of evaluation suite (e.g. humaneval, mbpp)
+        variant_name: Optional variant name for the run
+        overrides: Additional Hydra configuration overrides
+    """
     run_name = f"baseline-{cfg_name}-{eval_suite}-{ctx.obj['generator_model']}-{ctx.obj['sampling_setup']}"
     if variant_name is not None:
         run_name += f"-{variant_name}"
@@ -319,6 +408,20 @@ def evaluate_checkpoint(
     variant_name: str | None,
     use_config: Optional[Path],
 ):
+    """Evaluate a specific model checkpoint.
+
+    This command evaluates a trained model checkpoint, using the configuration
+    from the training run. It will automatically find the latest checkpoint
+    in the directory if a specific one is not provided.
+
+    Args:
+        ctx: Click context with runtime configuration
+        model_dir: Directory containing model checkpoint(s)
+        eval_suite: Name of evaluation suite (e.g. humaneval, mbpp)
+        overrides: Additional Hydra configuration overrides
+        variant_name: Optional variant name for the run
+        use_config: Optional path to specific config file to use
+    """
     _ = use_config
     print(f"{model_dir=}")
 

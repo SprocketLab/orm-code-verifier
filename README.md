@@ -1,6 +1,39 @@
 # Reward Models Enable Scalable Code Verification by Trading Accuracy for Throughput
 
-![overview.pdf](figs/overview.pdf)
+![overview.svg](figs/overview.svg)
+
+## Overview
+
+This repository implements a scalable approach to code verification using outcome reward models (ORMs) and efficient pruning strategies. The system enables high-throughput code verification by trading off accuracy through a novel filtering approach. Key features include:
+
+- Training and evaluating code verification models
+- Multiple scoring methods (binary logit, classification, reward modeling)
+- Comprehensive evaluation across multiple benchmark datasets
+- Efficient pruning strategies for scalable verification
+- Support for various transformer architectures
+
+## Repository Structure
+
+```
+.
+├── configs/            # Configuration files for experiments and evaluation
+│   └── suite/         # Suite configurations
+├── scripts/           
+│   ├── data/          # Data processing and generation
+│   └── exec_trials/   # Execution trial implementations
+├── src/               
+│   ├── evaluation/    # Evaluation suite and benchmarks
+│   ├── modeling.py    # Model architectures
+│   ├── preprocessing.py # Data preparation
+│   ├── scoring.py     # Solution scoring
+│   └── training/      # Training pipeline
+└── figs/              # Project figures and diagrams
+```
+
+For detailed information about specific components:
+- [Data Processing Documentation](scripts/data/README.md)
+- [Execution Trials Documentation](scripts/exec_trials/README.md)
+- [Source Code Documentation](src/README.md)
 
 # Installation
 
@@ -21,50 +54,27 @@ The dependencies for training and evaluation can be installed with:
 pip install -r requirements.txt
 ```
 
-# Data Generation
-
-We provide the [raw training dataset on HuggingFace](). To preprocess that dataset prior to training run:
-
+Additional Commands to run:
 ```sh
+git clone https://github.com/bigcode-project/bigcode-evaluation-harness.git scratch/bigcode --depth=1
+cd scratch/bigcode 
+pip install -e .
+cd ..
+pip install flash-attn --no-build-isolation
+```
+# Quick Run
 
+## 1. Preprocess The Training Data
+```sh
+python scripts/make_train_data.py \
+    --num_proc=4 \
+    --black_format \
+    --require_pf
 ```
 
-We have additionally provided [guides in the scripts/data directory for how to generate your own datasets.](scripts/data/README.md)
-
-## Execution Trials
-
-First you need to create a separate environment for execution (We recommend using Docker)
-
+This will format the training data and save it to disk so it can be loaded faster. Then you can run:
 ```sh
-pip install -r scripts/exec_trials/exec_requirements.txt
-```
-
-Once you have your evaluation sets, or use ours from huggingface, you can run the different execution trials. To run the strongest verifier you would run:
-
-```sh
-bash scripts/exec_trials/trial.sh {DATASET} {MODEL} {SAMPLING_SETUP} {NUM_CPU} {SAVE_PATH} {NUM TRIALS}
-```
-
-Here is what the strongest verifier for our setup looks like:
-
-```sh
-bash scripts/exec_trials/trial.sh code_contests qc-inst-7b t1.0_n128 32 outputs/ftp32_code_contets 5
-```
-
-To create the filters then follow the instructions [in that directory](scripts/exec_trials). We already provide all of the filters we used.
-
-# Training
-
-You first need to run the [`make_train_data.py`](scripts/make_train_data.py) script. Here is how we did it for our experiments:
-
-```sh
-python scripts/make_train_data.py --require_pf --black_format --num_proc=16
-```
-
-To train the model, you can use the provided [`experiment.sh`](scripts/experiment.sh) script. Here is how we would run the 1.5B model:
-
-```sh
-bash scripts/experiment.sh rm_qsol qwen25-coder-1_5b 0 1 \
+bash scripts/experiment.sh rm_qsol qwen25-coder-1_5b {DEVICE} {SEED} \
     --precision=bf16 \
     --num_workers=4 \
     --real_batch_size=64 \
@@ -74,14 +84,45 @@ bash scripts/experiment.sh rm_qsol qwen25-coder-1_5b 0 1 \
     gradient_checkpointing=True \
     --eval_batch_tokens=200000
 ```
+Notes:
+* `rm_qsol` is the experiment to run, you can look at [the other experiment configs for different setups](configs/experiments/). `qsol` is just the formatting setup for the sequences located in [the preprocessing config directory.](/configs/preprocessing/)
+* We use the seeds of 1, 1999, and 2024 for our experiments in the paper.
 
-This additionally evaluates the model on the 0 Shot setting.
+# Execution Trials
 
-For our experiments we ran with the seeds `1, 1999, 2024`
+The system supports three types of execution trials for comprehensive evaluation:
 
-# Evaluation
+1. **Execution Timing**: Measure performance and resource usage
+2. **Syntax Validation**: Check code correctness
+3. **Linting Checks**: Ensure code quality
 
-To run on a specific suite, with a specific filter, you can do the following:
+To run the strongest verifier:
+
+```sh
+bash scripts/exec_trials/trial.sh code_contests qc-inst-7b t1.0_n128 32 outputs/ftp32_code_contets 5
+```
+
+Key configuration parameters:
+- Temperature and sample size (e.g., t1.0_n128 = temperature 1.0, 128 samples)
+- Number of parallel workers
+- Test execution timeouts
+- Maximum tests per problem
+
+For detailed configuration options and security considerations, see the [Execution Trials Documentation](scripts/exec_trials/README.md).
+
+## Evaluation
+
+The system provides multiple evaluation configurations, each serving different verification purposes:
+
+- **Base** ([zero_shot](configs/suite/zero_shot.yaml)): Basic verification without additional checks
+- **Syntax** ([zero_shot_syntax](configs/suite/zero_shot_syntax.yaml)): Focuses on syntactic correctness
+- **Lint** ([zero_shot_lint](configs/suite/zero_shot_lint.yaml)): Enforces code style and quality
+- **Test Coverage**:
+  - [1 Test](configs/suite/zero_shot_3s1t.yaml): Quick verification with minimal testing
+  - [3 Tests](configs/suite/zero_shot_3s3t.yaml): Balanced verification approach
+  - [10 Tests](configs/suite/zero_shot_3s10t.yaml): Thorough verification with extensive testing
+
+To run evaluation with a specific configuration:
 
 ```sh
 accelerate launch \
@@ -98,15 +139,7 @@ accelerate launch \
     --num_workers=16 \
     qc-inst-7b \
     t1.0_n128 \
-    checkpoint {CHECKPOINT_PATH} \
+    checkpoint \
+    {CHECKPOINT_PATH} \
     zero_shot_3s10t
 ```
-
-The following configs correspond to the weak verifiers used:
-
-- [zero_shot](configs/suite/zero_shot.yaml) --- Base
-- [zero_shot_syntax](configs/suite/zero_shot_syntax.yaml) --- Syntax
-- [zero_shot_lint](configs/suite/zero_shot_lint.yaml) --- Lint
-- [zero_shot_3s1t](configs/suite/zero_shot_3s1t.yaml) --- 1 Test
-- [zero_shot_3s3t](configs/suite/zero_shot_3s3t.yaml) --- 3 Tests
-- [zero_shot_3s10t](configs/suite/zero_shot_3s10t.yaml) --- 10 Tests
