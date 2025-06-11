@@ -1,0 +1,37 @@
+defaults:
+  - /preprocessing@_here_
+  - _self_
+
+
+problem: "{{problem}}"
+program: "{{program}}"
+outcome: "{{outcome}}"
+prompt: |-
+  {%- if instruction -%}
+  {{instruction}}
+  {% endif -%}
+  {% if icl_examples -%}
+  {%- for example in icl_examples -%}
+  # Example {{loop.index|string}}:
+  {{example +"\n\n"}}
+  {%- endfor -%}
+  # Example {{icl_examples|length + 1}}:
+  {% endif -%}
+  ```python
+  {% if problem -%}
+  """
+  {{ problem }}
+  """
+  {% endif -%}
+  {{ program }}
+  ```
+completion: |-
+  # Is the solution correct (Answer {{pass_choice|trim}}/{{fail_choice|trim}})?
+  {%- if outcome -%}
+  {{"\n" + outcome}}
+  {%- endif -%}
+pass_choice_str: "Yes"
+fail_choice_str: "No"
+
+black_format: True
+remove_comments: False

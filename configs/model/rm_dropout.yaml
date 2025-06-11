@@ -1,0 +1,9 @@
+defaults:
+ - /model@_here_
+ - _self_
+
+model_type: "reward-model"
+init_kwargs:
+  num_labels: 1
+  classifier_dropout: 0.1
+  attn_implementation: null

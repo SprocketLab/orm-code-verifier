@@ -1,0 +1,5 @@
+defaults:
+  - /scoring@_here_
+  - _self_
+  
+scoring_method: reward_model

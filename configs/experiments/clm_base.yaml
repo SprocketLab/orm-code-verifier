@@ -1,0 +1,17 @@
+# @package _global_
+defaults:
+  - override /scoring: single_binary_logit
+  - override /preprocessing: raw_gbm
+  - override /model: clm
+  - override /trainer: hf
+  - _self_
+
+model:
+  init_kwargs:
+    attn_implementation: flash_attention_2
+examples_per_problem: 6
+logging_steps: 5
+
+learning_rate: 1e-6
+num_train_epochs: 1
+eval_strategy: steps

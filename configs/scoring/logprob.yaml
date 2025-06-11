@@ -1,0 +1,7 @@
+defaults:
+  - /scoring@_here_
+  - _self_
+  
+scoring_method: logprob
+
+use_dummy_problem_for_mask: True

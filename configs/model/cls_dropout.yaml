@@ -1,0 +1,7 @@
+defaults:
+ - cls@_here_
+ - _self_
+
+init_kwargs:
+  hidden_dropout: 0.2
+  attn_implementation: null

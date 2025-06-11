@@ -1,0 +1,52 @@
+defaults:
+  - /eval_suite@_here_
+  - /humaneval_cfg@tasks.humaneval
+  - /mbpp_cfg@tasks.mbpp
+  - /gsm8k_cfg@tasks.gsm8k
+  - /codecontests_cfg@tasks.code_contests
+  - _self_
+
+name: 2shot
+icl_examples:
+  main:
+    - solution: |-
+        def count_unique(arr):
+            return {i: arr.count(i) for i in set(arr)}
+      problem: |-
+        Write a function that counts the occurrences of elements in an array.
+        assert count_unique([1, 3, 1, 2, 2, 2]) == {1: 2, 3: 1, 2: 3}
+      passed: True
+      exec_mode: asserts
+      inputs:
+        - "assert count_unique([1, 3, 1, 2, 2, 2]) == {1: 2, 3: 1, 2: 3}"
+    - solution: |-
+        def nearest_multiple_10(num: str):
+            """ Write a function to round the given number to the nearest multiple of 10.
+            >>> nearest_multiple_10('29')
+            30
+            >>> nearest_multiple_10('15')
+            10
+            """
+            num = int(num)
+            return (num + 5) // 10 * 10
+      problem: |-
+        Write a function to round the given number to the nearest multiple of 10.
+        >>> nearest_multiple_10('29')
+        30
+        >>> nearest_multiple_10('15')
+        10
+      passed: False
+      exec_mode: asserts
+      inputs:
+        - "assert nearest_multiple_10('29') == 30"
+        - "assert nearest_multiple_10('15') == 10"
+      
+tasks:
+  humaneval:
+    icl_examples: "main"
+  mbpp:
+    icl_examples: "main"
+  gsm8k:
+    icl_examples: "main"
+  code_contests:
+    icl_examples: "main"

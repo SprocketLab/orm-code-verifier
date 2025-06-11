@@ -1,0 +1,4 @@
+# @package _global_
+defaults:
+  - /trainers/dpo@_here_
+  - _self_

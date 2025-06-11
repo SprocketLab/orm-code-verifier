@@ -1,0 +1,14 @@
+# @package _global_
+defaults:
+  - dpo_base@_here_
+  - override /preprocessing: qsol_task
+  - override /scoring: logprob
+  - _self_
+
+
+scoring:
+  use_dummy_problem_for_mask: True
+  include_completion: False
+
+preprocessing:
+  completion: ""

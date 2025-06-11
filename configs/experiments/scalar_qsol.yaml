@@ -1,0 +1,18 @@
+# @package _global_
+defaults:
+  - override /scoring: regression
+  - override /preprocessing: qsol_task
+  - override /model: rm
+  - override /trainer: hf
+  - _self_
+
+examples_per_problem: 6
+num_train_epochs: 2
+model:
+  init_kwargs:
+    attn_implementation: flash_attention_2
+
+preprocessing:
+  completion: ""
+
+negative_label: -1

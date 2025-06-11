@@ -1,0 +1,5 @@
+# @package _global_
+defaults:
+  - override /preprocessing: raw_yn
+  - override /scoring: single_binary_logit
+  - _self_

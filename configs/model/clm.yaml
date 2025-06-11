@@ -1,0 +1,7 @@
+defaults:
+ - /model@_here_
+ - _self_
+
+model_type: "causal-lm"
+init_kwargs:
+  attn_implementation: flash_attention_2

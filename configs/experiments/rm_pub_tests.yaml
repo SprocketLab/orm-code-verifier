@@ -1,0 +1,8 @@
+# @package _global_
+defaults:
+  - rm_base@_here_
+  - override /preprocessing: qsol_task
+  - _self_
+
+data:
+  pass_level: "public"

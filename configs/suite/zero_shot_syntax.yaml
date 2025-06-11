@@ -1,0 +1,12 @@
+defaults:
+  - /eval_suite@_here_
+  - /humaneval_cfg@tasks.humaneval
+  - /mbpp_cfg@tasks.mbpp
+  - /gsm8k_cfg@tasks.gsm8k
+  - /codecontests_cfg@tasks.code_contests
+  - _self_
+
+name: 0shot_syntax
+filter_function: is_valid_syntax
+
+

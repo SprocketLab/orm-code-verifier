@@ -1,0 +1,21 @@
+defaults:
+  - qsol_task@_here_
+  - _self_
+completion: "{{outcome}}"
+prompt: |-
+  {%- if instruction -%}
+  {{instruction}}
+  {% endif -%}
+  {% if icl_examples -%}
+  {%- for example in icl_examples -%}
+  # Example {{loop.index|string}}:
+  {{example +"\n\n"}}
+  {%- endfor -%}
+  # Example {{icl_examples|length + 1}}:
+  {% endif -%}
+  {%- if problem -%}
+  {{ problem }}
+  {% endif %}
+  {{program |trim}}
+  
+  # Is the solution correct (Answer {{pass_choice|trim}}/{{fail_choice|trim}})?

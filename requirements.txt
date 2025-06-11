@@ -1,0 +1,24 @@
+transformers[torch]==4.46.2
+datasets==2.21.0
+rich==13.8.0
+tqdm==4.66.5
+black==24.8.0
+hydra-core==1.3.2
+accelerate==1.1.0
+click==8.1.7
+evaluate==0.4.3
+gitpython==3.1.43
+scikit-learn==1.5.2
+unidecode==1.3.8
+wandb==0.18.2
+vllm==0.6.3
+isort==5.13.2
+ujson==5.10.0
+markdownify==0.13.1
+trl==0.13.0
+scipy==1.15.2
+pylint==3.3.6
+numpy==1.26.4
+pandas==2.2.3
+code_execution @ git+https://github.com/gabeorlanski/simple-code-execution.git@bf0cb87ba5987216e5c537028b74bdb18fa382d4
+evalplus @ git+https://github.com/gabeorlanski/evalplus.git

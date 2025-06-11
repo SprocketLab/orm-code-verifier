@@ -1,0 +1,11 @@
+defaults:
+  - /eval_suite@_here_
+  - /humaneval_cfg@tasks.humaneval
+  - /mbpp_cfg@tasks.mbpp
+  - /codecontests_cfg@tasks.code_contests
+  - _self_
+
+name: e3s3t
+filter_function: execute_3s3t
+
+
