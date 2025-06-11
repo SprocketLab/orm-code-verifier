@@ -176,3 +176,4 @@ data/exec_trial_problems
 exec_trials/*
 exec_trials.tar
 scripts/exec_trials/trials/*
+.DS_Store
