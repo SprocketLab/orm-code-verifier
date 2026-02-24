@@ -1,10 +1,10 @@
-# ORM Code Verifier
+# Pareto Optimal Code Generation
 
-A framework for scalable code verification using outcome reward models and pruning strategies. This repository contains the implementation for evaluating and training code verification systems using transformer-based models.
+Source code for *Pareto Optimal Code Generation*. This contains the implementation for training and evaluating code verification systems using transformer-based outcome reward models with staged verification.
 
 ## Overview
 
-This codebase implements a scalable approach to code verification using outcome reward models (ORMs) and efficient pruning strategies. It provides tools for:
+This codebase implements Pareto-optimal code generation using outcome reward models (ORMs) and staged verification strategies. It provides tools for:
 
 - Training and evaluating code verification models
 - Scoring code solutions using various methods (binary logit, classification, reward modeling)

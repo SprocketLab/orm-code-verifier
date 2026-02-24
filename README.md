@@ -1,10 +1,10 @@
-# Reward Models Enable Scalable Code Verification by Trading Accuracy for Throughput
+# Pareto Optimal Code Generation
 
 ![overview.svg](figs/overview.svg)
 
 ## Overview
 
-This repository implements a scalable approach to code verification using outcome reward models (ORMs) and efficient pruning strategies. The system enables high-throughput code verification by trading off accuracy through a novel filtering approach. Key features include:
+This repository implements the code and experiments for *Pareto Optimal Code Generation*. The system uses outcome reward models (ORMs) with staged verification to shift the Pareto frontier of code generation, achieving higher throughput while trading off accuracy relative to full test-suite verification. Key features include:
 
 - Training and evaluating code verification models
 - Multiple scoring methods (binary logit, classification, reward modeling)
